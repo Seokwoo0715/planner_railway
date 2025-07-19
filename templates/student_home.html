@@ -68,7 +68,7 @@
     }
     
     #calendar {
-      background: white;
+      background: #ffffff;
       border-radius: 16px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
       padding: 16px;
@@ -97,6 +97,32 @@
     .fc .fc-daygrid-day.fc-day-selected {
       background: #60a5fa !important;
       color: #fff !important;
+    }
+    
+    /* 캘린더 내부를 더 흰색으로 */
+    .fc-theme-standard .fc-scrollgrid {
+      background: #ffffff;
+    }
+    
+    .fc-theme-standard td {
+      background: #ffffff;
+      border-color: #e5e7eb;
+    }
+    
+    .fc-theme-standard th {
+      background: #f8fafc;
+      border-color: #e5e7eb;
+      color: #374151;
+      font-weight: 600;
+    }
+    
+    .fc .fc-daygrid-day {
+      background: #ffffff;
+    }
+    
+    .fc .fc-daygrid-day-number {
+      color: #374151;
+      font-weight: 500;
     }
     
     .plan-form-card {
@@ -349,6 +375,26 @@
         margin: 16px auto 0;
         width: fit-content;
       }
+      
+      /* 모바일에서 캘린더 높이 조정 */
+      #calendar {
+        max-height: 350px;
+        overflow: hidden;
+      }
+      
+      .fc .fc-daygrid-body {
+        max-height: 250px;
+      }
+      
+      .fc .fc-daygrid-day {
+        min-height: 35px !important;
+        height: 35px !important;
+      }
+      
+      .fc .fc-daygrid-day-number {
+        font-size: 0.85rem;
+        padding: 2px;
+      }
     }
     
     @media (max-height: 600px) {
@@ -493,11 +539,17 @@
       var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         height: 'auto',
+        locale: 'ko', // 한국어 설정
         headerToolbar: {
           left: 'prev,next today',
           center: 'title',
           right: 'dayGridMonth'
         },
+        buttonText: {
+          today: '오늘',
+          month: '월'
+        },
+        dayHeaderFormat: { weekday: 'short' }, // 요일을 짧게 표시
         dateClick: function(info) {
           selectedDate = info.dateStr;
           
