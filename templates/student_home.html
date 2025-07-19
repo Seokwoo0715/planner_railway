@@ -2,37 +2,44 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>학생 플래너</title>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.18/index.global.min.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Nunito:400,600,700&display=swap" rel="stylesheet">
   <style>
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
     
     body {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #ffffff;
       font-family: 'Nunito', 'Apple SD Gothic Neo', sans-serif;
-      margin: 0;
       padding: 20px;
+      padding-bottom: 40px;
       min-height: 100vh;
+      min-height: 100dvh;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
     }
     
     .planner-container {
       max-width: 1400px;
       margin: 0 auto;
-      background: rgba(255, 255, 255, 0.95);
+      background: #f8fafc;
       border-radius: 24px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-      backdrop-filter: blur(10px);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e5e7eb;
       overflow: hidden;
     }
     
     .planner-header {
-      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      background: #60a5fa;
       color: white;
       padding: 32px;
       text-align: center;
+      position: relative;
     }
     
     .planner-title {
@@ -68,14 +75,19 @@
     }
     
     .fc .fc-button-primary {
-      background: #3b82f6;
-      border-color: #3b82f6;
+      background: #60a5fa;
+      border-color: #60a5fa;
       border-radius: 8px;
+      font-weight: 600;
     }
     
     .fc .fc-button-primary:hover {
-      background: #2563eb;
-      border-color: #2563eb;
+      background: #3b82f6;
+      border-color: #3b82f6;
+    }
+    
+    .fc .fc-button-primary:focus {
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
     }
     
     .fc .fc-daygrid-day.fc-day-today {
@@ -83,16 +95,16 @@
     }
     
     .fc .fc-daygrid-day.fc-day-selected {
-      background: #3b82f6 !important;
+      background: #60a5fa !important;
       color: #fff !important;
     }
     
     .plan-form-card {
-      background: linear-gradient(145deg, #f1f5f9 0%, #e2e8f0 100%);
+      background: #60a5fa;
       border-radius: 20px;
       padding: 28px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
-      border: 1px solid rgba(59, 130, 246, 0.1);
+      box-shadow: 0 8px 32px rgba(96, 165, 250, 0.15);
+      border: 1px solid #e5e7eb;
       display: none;
     }
     
@@ -117,7 +129,7 @@
     }
     
     .form-group label {
-      color: #1e293b;
+      color: #ffffff;
       font-size: 1.1rem;
       font-weight: 600;
       margin-bottom: 8px;
@@ -128,12 +140,13 @@
     .form-group textarea {
       width: 100%;
       padding: 14px 16px;
-      border: 2px solid #e2e8f0;
+      border: 2px solid #e5e7eb;
       border-radius: 12px;
       font-size: 1rem;
       font-family: inherit;
       transition: all 0.3s ease;
       background: white;
+      color: #1f2937;
     }
     
     .form-group input[type="text"]:focus,
@@ -141,6 +154,7 @@
       outline: none;
       border-color: #3b82f6;
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      transform: translateY(-1px);
     }
     
     .form-group textarea {
@@ -152,7 +166,7 @@
       background: white;
       border-radius: 12px;
       padding: 16px;
-      border: 2px solid #e2e8f0;
+      border: 2px solid #e5e7eb;
       margin-bottom: 16px;
     }
     
@@ -171,7 +185,7 @@
     .checklist-item input[type="checkbox"] {
       width: 18px;
       height: 18px;
-      accent-color: #3b82f6;
+      accent-color: #60a5fa;
     }
     
     .checklist-item input[type="text"] {
@@ -180,6 +194,7 @@
       background: transparent;
       padding: 4px 8px;
       font-size: 0.95rem;
+      color: #1f2937;
     }
     
     .checklist-item input[type="text"]:focus {
@@ -197,6 +212,7 @@
       font-size: 0.8rem;
       opacity: 0.7;
       transition: opacity 0.2s;
+      -webkit-tap-highlight-color: transparent;
     }
     
     .remove-item:hover {
@@ -213,6 +229,8 @@
       font-size: 0.9rem;
       margin-top: 12px;
       transition: background 0.2s;
+      -webkit-tap-highlight-color: transparent;
+      font-weight: 600;
     }
     
     .add-checklist-item:hover {
@@ -222,54 +240,89 @@
     .submit-btn {
       width: 100%;
       padding: 16px 0;
-      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-      color: white;
+      background: #ffffff;
+      color: #60a5fa;
       border: none;
       border-radius: 12px;
       font-size: 1.1rem;
       font-weight: 700;
       cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 16px rgba(255, 255, 255, 0.3);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      min-height: 50px;
     }
     
     .submit-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+      box-shadow: 0 8px 25px rgba(255, 255, 255, 0.4);
+      background: #f8fafc;
     }
     
     .logout-link {
       position: absolute;
       top: 32px;
       right: 32px;
-      color: rgba(255, 255, 255, 0.9);
+      color: #ffffff;
       text-decoration: none;
       font-size: 1rem;
       font-weight: 600;
       padding: 8px 16px;
       border-radius: 20px;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.2);
       transition: all 0.3s ease;
+      -webkit-tap-highlight-color: transparent;
     }
     
     .logout-link:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.3);
       transform: translateY(-1px);
+      text-decoration: none;
+      color: #ffffff;
     }
     
     .selected-date-info {
-      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-      color: white;
+      background: #ffffff;
+      color: #60a5fa;
       padding: 16px 20px;
       border-radius: 12px;
       margin-bottom: 24px;
       text-align: center;
       font-weight: 600;
-      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+      box-shadow: 0 4px 16px rgba(255, 255, 255, 0.3);
     }
     
+    /* 성공 메시지 */
+    .success-message {
+      background: #10b981;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      text-align: center;
+      font-weight: 600;
+      animation: slideDown 0.5s ease-out;
+    }
+    
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    /* 반응형 디자인 */
     @media (max-width: 768px) {
+      body {
+        padding: 10px;
+        padding-bottom: 30px;
+      }
+      
       .planner-content {
         flex-direction: column;
       }
@@ -293,7 +346,79 @@
         right: auto;
         display: block;
         text-align: center;
-        margin: 16px 0 0 0;
+        margin: 16px auto 0;
+        width: fit-content;
+      }
+    }
+    
+    @media (max-height: 600px) {
+      body {
+        padding-top: 10px;
+      }
+    }
+    
+    /* 터치 디바이스 최적화 */
+    @media (hover: none) and (pointer: coarse) {
+      .submit-btn:hover {
+        transform: none;
+        box-shadow: 0 4px 16px rgba(255, 255, 255, 0.3);
+        background: #ffffff;
+      }
+      
+      .logout-link:hover {
+        transform: none;
+        background: rgba(255, 255, 255, 0.2);
+      }
+      
+      .add-checklist-item:hover {
+        background: #10b981;
+      }
+    }
+    
+    /* 다크모드 지원 */
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #1f2937;
+      }
+      
+      .planner-container {
+        background: #374151;
+        border: 1px solid #4b5563;
+      }
+      
+      .planner-header {
+        background: #4b5563;
+      }
+      
+      .calendar-section {
+        background: #374151;
+      }
+      
+      .form-section {
+        background: #374151;
+      }
+      
+      #calendar {
+        background: #4b5563;
+      }
+      
+      .plan-form-card {
+        background: #4b5563;
+      }
+      
+      .selected-date-info {
+        background: #ffffff;
+        color: #4b5563;
+      }
+      
+      .form-group input[type="text"], 
+      .form-group textarea {
+        background: #ffffff;
+        color: #1f2937;
+      }
+      
+      .checklist-container {
+        background: #ffffff;
       }
     }
   </style>
@@ -315,6 +440,12 @@
           <div id="selected-date-info" class="selected-date-info">
             날짜를 선택해주세요
           </div>
+          
+          {% if message %}
+          <div class="success-message">
+            {{ message }}
+          </div>
+          {% endif %}
           
           <form method="post" id="planInputForm">
             <input type="hidden" name="date" id="plan-date">
@@ -381,7 +512,7 @@
             start: info.dateStr,
             end: info.dateStr,
             display: 'background',
-            backgroundColor: '#3b82f6'
+            backgroundColor: '#60a5fa'
           });
           selectedDateEvent = calendar.getEventById('selected-date');
           
@@ -444,9 +575,6 @@
       
       // 폼 제출 시 체크리스트 데이터 포함
       document.getElementById('planInputForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(this);
         const checklistData = [];
         
         const items = document.querySelectorAll('#checklist-container .checklist-item');
@@ -458,13 +586,17 @@
           }
         });
         
-        formData.append('checklist', JSON.stringify(checklistData));
+        // 체크리스트 데이터를 hidden input으로 추가
+        const checklistInput = document.createElement('input');
+        checklistInput.type = 'hidden';
+        checklistInput.name = 'checklist';
+        checklistInput.value = JSON.stringify(checklistData);
+        this.appendChild(checklistInput);
         
-        // 여기서 실제 서버로 데이터 전송
-        // fetch('/save_plan', { method: 'POST', body: formData })...
-        
-        console.log('저장될 데이터:', Object.fromEntries(formData));
-        alert('저장되었습니다!');
+        // 제출 버튼 상태 변경
+        const submitBtn = this.querySelector('.submit-btn');
+        submitBtn.innerHTML = '💾 저장 중...';
+        submitBtn.disabled = true;
       });
     });
     
@@ -517,6 +649,18 @@
         </div>
       `;
     }
+    
+    // 자동 저장 기능 (선택사항)
+    let autoSaveTimer;
+    document.addEventListener('input', function(e) {
+      if (e.target.matches('textarea, input[type="text"]') && selectedDate) {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => {
+          // 자동 저장 로직 (필요시 구현)
+          console.log('Auto-save triggered');
+        }, 2000);
+      }
+    });
   </script>
 </body>
 </html>
