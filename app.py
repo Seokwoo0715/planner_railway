@@ -243,9 +243,12 @@ def view_student(student_name):
             'checklist': checklist
         })
     
+    # JSON으로 직렬화해서 템플릿에 전달
+    plans_json = json.dumps(formatted_plans)
+    
     return render_template('view_student.html', 
                          student_name=student_name, 
-                         plans=formatted_plans)
+                         plans=plans_json)
 
 # 로그인 페이지
 @app.route('/login', methods=['GET', 'POST'])
