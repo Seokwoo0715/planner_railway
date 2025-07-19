@@ -3,6 +3,11 @@ import psycopg2
 import json
 import os
 import logging
+import threading
+import schedule
+import time
+from datetime import datetime, timedelta
+import requests
 
 if not os.path.isdir('logs'):
     os.mkdir('logs')
@@ -285,9 +290,311 @@ def internal_error(error):
     app.logger.error(f"Internal server error: {error}")
     return render_template('500.html'), 500
 
+# 선생님 카카오톡 알림 함수
+def send_teacher_kakao_notification(message):
+    """선생님에게 카카오톡 메시지 전송"""
+    url = "https://kapi.kakao.com/v2/api/talk/memo/default/send"
+    
+    # 발급받은 Access Token 사용
+    headers = {
+        "Authorization": f"Bearer {os.environ.get('TEACHER_KAKAO_TOKEN')}",
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+    
+    # 플래너 링크 포함
+    base_url = os.environ.get('RAILWAY_STATIC_URL', 'https://your-app.railway.app')
+    
+    template_object = {
+        "object_type": "text",
+        "text": message,
+        "link": {
+            "web_url": base_url,
+            "mobile_web_url": base_url
+        }
+    }
+    
+    data = {
+        "template_object": json.dumps(template_object)
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, data=data)
+        if response.status_code == 200:
+            app.logger.info("✅ 선생님 카카오톡 알림 전송 성공")
+            return True
+        else:
+            app.logger.error(f"❌ 카카오톡 전송 실패: {response.status_code} - {response.text}")
+            return False
+    except Exception as e:
+        app.logger.error(f"❌ 카카오톡 전송 오류: {e}")
+        return False
+
+# 오전 11시 체크
+def check_morning_goals():
+    """오전 11시 - 목표 미작성 학생들 체크"""
+    today = datetime.now().strftime('%Y-%m-%d')
+    current_time = datetime.now().strftime('%H시 %M분')
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # 목표와 체크리스트가 모두 비어있는 학생들
+        cursor.execute("""
+            SELECT u.username 
+            FROM users u 
+            WHERE u.role = 'student' 
+            AND u.id NOT IN (
+                SELECT DISTINCT p.user_id 
+                FROM plans p 
+                WHERE p.plan_date = %s 
+                AND p.plan IS NOT NULL 
+                AND p.plan != ''
+                AND p.checklist IS NOT NULL 
+                AND p.checklist != '[]'
+                AND p.checklist != 'null'
+            )
+        """, (today,))
+        
+        students_without_goals = cursor.fetchall()
+        conn.close()
+        
+        if students_without_goals:
+            student_names = [student[0] for student in students_without_goals]
+            
+            message = f"""📋 오전 11시 목표 미작성 알림
+
+⏰ 시간: {current_time}
+📅 날짜: {datetime.now().strftime('%m월 %d일')}
+
+❌ 목표 미작성 학생들:
+{chr(10).join([f"• {name} 학생" for name in student_names])}
+
+총 {len(student_names)}명이 아직 오늘의 목표를 작성하지 않았습니다.
+
+👨‍🏫 확인해보세요!"""
+            
+            send_teacher_kakao_notification(message)
+            app.logger.info(f"오전 11시 알림 완료 - 미작성: {len(student_names)}명")
+        else:
+            # 모든 학생이 작성했을 때
+            message = f"""✅ 오전 11시 목표 작성 현황
+
+⏰ 시간: {current_time}
+📅 날짜: {datetime.now().strftime('%m월 %d일')}
+
+🎉 모든 학생이 목표를 작성했습니다!
+훌륭해요! 👏"""
+            
+            send_teacher_kakao_notification(message)
+            app.logger.info("오전 11시 - 모든 학생 목표 작성 완료")
+        
+    except Exception as e:
+        app.logger.error(f"오전 11시 체크 오류: {e}")
+
+# 오후 1시 체크
+def check_afternoon_goals():
+    """오후 1시 - 여전히 미작성인 학생들 재체크"""
+    today = datetime.now().strftime('%Y-%m-%d')
+    current_time = datetime.now().strftime('%H시 %M분')
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT u.username 
+            FROM users u 
+            WHERE u.role = 'student' 
+            AND u.id NOT IN (
+                SELECT DISTINCT p.user_id 
+                FROM plans p 
+                WHERE p.plan_date = %s 
+                AND p.plan IS NOT NULL 
+                AND p.plan != ''
+                AND p.checklist IS NOT NULL 
+                AND p.checklist != '[]'
+                AND p.checklist != 'null'
+            )
+        """, (today,))
+        
+        students_still_without_goals = cursor.fetchall()
+        conn.close()
+        
+        if students_still_without_goals:
+            student_names = [student[0] for student in students_still_without_goals]
+            
+            message = f"""🚨 오후 1시 목표 미작성 재알림
+
+⏰ 시간: {current_time}
+📅 날짜: {datetime.now().strftime('%m월 %d일')}
+
+⚠️ 여전히 목표 미작성 학생들:
+{chr(10).join([f"• {name} 학생" for name in student_names])}
+
+🔥 반나절이 지났는데도 {len(student_names)}명이 계획을 세우지 않았습니다.
+
+👨‍🏫 추가 지도가 필요할 수 있습니다!"""
+            
+            send_teacher_kakao_notification(message)
+            app.logger.info(f"오후 1시 재알림 완료 - 여전히 미작성: {len(student_names)}명")
+        else:
+            message = f"""✅ 오후 1시 목표 작성 현황
+
+⏰ 시간: {current_time}
+📅 날짜: {datetime.now().strftime('%m월 %d일')}
+
+🎉 모든 학생이 목표를 작성완료!
+늦었지만 모두 계획을 세웠네요! 👍"""
+            
+            send_teacher_kakao_notification(message)
+            app.logger.info("오후 1시 - 모든 학생 목표 작성 완료")
+        
+    except Exception as e:
+        app.logger.error(f"오후 1시 체크 오류: {e}")
+
+# 새벽 2시 체크
+def check_late_completion():
+    """새벽 2시 - 전날 회고 미작성 학생들 체크"""
+    yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+    yesterday_display = (datetime.now() - timedelta(days=1)).strftime('%m월 %d일')
+    current_time = datetime.now().strftime('%H시 %M분')
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT u.username 
+            FROM users u 
+            JOIN plans p ON u.id = p.user_id 
+            WHERE u.role = 'student' 
+            AND p.plan_date = %s 
+            AND p.plan IS NOT NULL 
+            AND p.plan != ''
+            AND (
+                p.result IS NULL OR p.result = '' OR 
+                p.reflection IS NULL OR p.reflection = ''
+            )
+        """, (yesterday,))
+        
+        students_incomplete_reflection = cursor.fetchall()
+        conn.close()
+        
+        if students_incomplete_reflection:
+            student_names = [student[0] for student in students_incomplete_reflection]
+            
+            message = f"""🌙 새벽 2시 회고 미작성 알림
+
+⏰ 시간: {current_time}
+📅 대상일: {yesterday_display}
+
+💭 회고 미작성 학생들:
+{chr(10).join([f"• {name} 학생" for name in student_names])}
+
+📚 {len(student_names)}명이 어제 하루 마무리를 하지 않았습니다.
+
+👨‍🏫 학습 습관 점검이 필요할 수 있습니다."""
+            
+            send_teacher_kakao_notification(message)
+            app.logger.info(f"새벽 2시 알림 완료 - 회고 미작성: {len(student_names)}명")
+        else:
+            message = f"""✅ 새벽 2시 회고 작성 현황
+
+⏰ 시간: {current_time}
+📅 대상일: {yesterday_display}
+
+🎉 모든 학생이 어제 회고를 작성완료!
+좋은 학습 습관이 자리잡고 있네요! 📝"""
+            
+            send_teacher_kakao_notification(message)
+            app.logger.info("새벽 2시 - 모든 학생 회고 작성 완료")
+        
+    except Exception as e:
+        app.logger.error(f"새벽 2시 체크 오류: {e}")
+
+# 스케줄러 설정
+def setup_notification_scheduler():
+    """알림 스케줄러 설정"""
+    
+    # 오전 11:00 - 목표 미작성자 체크
+    schedule.every().day.at("11:00").do(check_morning_goals)
+    
+    # 오후 13:00 - 목표 여전히 미작성자 재체크
+    schedule.every().day.at("13:00").do(check_afternoon_goals)
+    
+    # 새벽 02:00 - 전날 회고 미작성자 체크
+    schedule.every().day.at("02:00").do(check_late_completion)
+    
+    app.logger.info("""✅ 선생님 카카오톡 알림 스케줄러 설정 완료:
+    🕐 11:00 - 목표 미작성자 알림
+    🕐 13:00 - 목표 미작성자 재알림  
+    🕑 02:00 - 회고 미작성자 알림""")
+
+def run_scheduler():
+    """스케줄러 실행"""
+    app.logger.info("카카오톡 알림 스케줄러 시작")
+    while True:
+        schedule.run_pending()
+        time.sleep(60)  # 1분마다 체크
+
+# 테스트 라우트들
+@app.route('/test_kakao')
+def test_kakao():
+    """카카오톡 테스트"""
+    if 'user_id' not in session or session['role'] != 'teacher':
+        return "권한이 없습니다", 403
+    
+    test_message = f"""🔔 플래너 시스템 테스트
+
+✅ 카카오톡 알림이 정상적으로 작동하고 있습니다!
+
+시간: {datetime.now().strftime('%H시 %M분')}
+날짜: {datetime.now().strftime('%Y년 %m월 %d일')}"""
+    
+    result = send_teacher_kakao_notification(test_message)
+    return f"테스트 메시지 {'✅ 성공' if result else '❌ 실패'}"
+
+@app.route('/test_morning')
+def test_morning():
+    """오전 체크 테스트"""
+    if 'user_id' not in session or session['role'] != 'teacher':
+        return "권한이 없습니다", 403
+    
+    check_morning_goals()
+    return "✅ 오전 11시 체크 테스트 완료!"
+
+@app.route('/test_afternoon')
+def test_afternoon():
+    """오후 체크 테스트"""
+    if 'user_id' not in session or session['role'] != 'teacher':
+        return "권한이 없습니다", 403
+    
+    check_afternoon_goals()
+    return "✅ 오후 1시 체크 테스트 완료!"
+
+@app.route('/test_late')
+def test_late():
+    """새벽 체크 테스트"""
+    if 'user_id' not in session or session['role'] != 'teacher':
+        return "권한이 없습니다", 403
+    
+    check_late_completion()
+    return "✅ 새벽 2시 회고 체크 테스트 완료!"
+
 if __name__ == '__main__':
-    # 앱 시작할 때 DB 초기화
+    # 데이터베이스 초기화
     init_db()
+    
+    # 알림 스케줄러 시작
+    if os.environ.get('TEACHER_KAKAO_TOKEN'):
+        setup_notification_scheduler()
+        scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
+        scheduler_thread.start()
+        print("🚀 카카오톡 알림 시스템이 시작되었습니다!")
+    else:
+        print("⚠️ TEACHER_KAKAO_TOKEN이 설정되지 않았습니다.")
+        print("📱 Railway 환경변수에 토큰을 설정해주세요!")
     
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
