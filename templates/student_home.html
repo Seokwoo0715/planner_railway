@@ -388,22 +388,35 @@
       
       /* 모바일에서 캘린더 높이 조정 */
       #calendar {
-        max-height: 350px;
-        overflow: hidden;
-      }
-      
-      .fc .fc-daygrid-body {
-        max-height: 250px;
+        font-size: 0.85rem;
       }
       
       .fc .fc-daygrid-day {
-        min-height: 35px !important;
-        height: 35px !important;
+        min-height: 30px !important;
+        height: auto !important;
       }
       
       .fc .fc-daygrid-day-number {
+        font-size: 0.8rem;
+        padding: 4px;
+      }
+      
+      .fc .fc-daygrid-body {
+        font-size: 0.8rem;
+      }
+      
+      .fc .fc-col-header-cell {
+        padding: 8px 4px;
+        font-size: 0.8rem;
+      }
+      
+      .fc .fc-button {
+        padding: 6px 12px;
         font-size: 0.85rem;
-        padding: 2px;
+      }
+      
+      .fc .fc-toolbar-title {
+        font-size: 1.2rem;
       }
     }
     
@@ -549,6 +562,7 @@
       var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         height: 'auto',
+        aspectRatio: window.innerWidth < 768 ? 1.0 : 1.35, // 모바일에서 더 정사각형에 가깝게
         locale: 'ko', // 한국어 설정
         headerToolbar: {
           left: 'prev,next today',
@@ -629,6 +643,11 @@
         }
       });
       calendar.render();
+      
+      // 화면 크기 변경 시 캘린더 비율 조정
+      window.addEventListener('resize', function() {
+        calendar.setOption('aspectRatio', window.innerWidth < 768 ? 1.0 : 1.35);
+      });
       
       // 체크리스트 기능
       document.getElementById('add-checklist').addEventListener('click', addChecklistItem);
