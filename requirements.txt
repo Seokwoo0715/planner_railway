@@ -1,3 +1,19 @@
+# 플래너 시스템 필수 패키지
+
+# 웹 프레임워크
 Flask==3.1.1
+
+# 데이터베이스
 psycopg2-binary==2.9.7
+
+# 웹 서버 (프로덕션용)
 gunicorn
+
+# HTTP 요청 (카카오톡 API용)
+requests==2.32.4
+
+# 스케줄러 (알림 시스템용)
+schedule==1.2.2
+
+# 환경변수 관리 (선택사항)
+python-dotenv==1.0.1
