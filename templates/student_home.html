@@ -652,7 +652,7 @@
       // 체크리스트 기능
       document.getElementById('add-checklist').addEventListener('click', addChecklistItem);
       
-      // 초기 삭제 버튼 이벤트 리스너
+      // 삭제 버튼 이벤트 리스너 (이벤트 위임 방식으로 수정)
       document.addEventListener('click', function(e) {
         if (e.target.classList.contains('remove-item')) {
           removeChecklistItem(e.target);
@@ -696,12 +696,27 @@
         <button type="button" class="remove-item">삭제</button>
       `;
       container.appendChild(newItem);
+      
+      // 새로 추가된 입력 필드에 포커스
+      const newInput = newItem.querySelector('input[type="text"]');
+      if (newInput) {
+        newInput.focus();
+      }
     }
     
     function removeChecklistItem(button) {
       const container = document.getElementById('checklist-container');
+      const item = button.parentElement;
+      
+      // 최소 1개는 남겨두기
       if (container.children.length > 1) {
-        button.parentElement.remove();
+        item.remove();
+      } else {
+        // 마지막 아이템이면 내용만 초기화
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        const textInput = item.querySelector('input[type="text"]');
+        if (checkbox) checkbox.checked = false;
+        if (textInput) textInput.value = '';
       }
     }
     
@@ -709,18 +724,19 @@
       const container = document.getElementById('checklist-container');
       container.innerHTML = '';
       
-      checklistData.forEach(item => {
-        const newItem = document.createElement('div');
-        newItem.className = 'checklist-item';
-        newItem.innerHTML = `
-          <input type="checkbox" name="checklist_done[]" ${item.done ? 'checked' : ''}>
-          <input type="text" name="checklist_item[]" value="${item.text}" placeholder="할 일을 입력하세요">
-          <button type="button" class="remove-item">삭제</button>
-        `;
-        container.appendChild(newItem);
-      });
-      
-      if (checklistData.length === 0) {
+      if (checklistData && checklistData.length > 0) {
+        checklistData.forEach(item => {
+          const newItem = document.createElement('div');
+          newItem.className = 'checklist-item';
+          newItem.innerHTML = `
+            <input type="checkbox" name="checklist_done[]" ${item.done ? 'checked' : ''}>
+            <input type="text" name="checklist_item[]" value="${item.text || ''}" placeholder="할 일을 입력하세요">
+            <button type="button" class="remove-item">삭제</button>
+          `;
+          container.appendChild(newItem);
+        });
+      } else {
+        // 데이터가 없으면 기본 아이템 1개 추가
         resetChecklist();
       }
     }
