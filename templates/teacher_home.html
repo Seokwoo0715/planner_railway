@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>선생님 홈</title></head>
+<body>
+    <h2>전체 학생 리스트</h2>
+    <ul>
+        {% for student in students %}
+            <li>{{ student[0] }}</li>
+        {% endfor %}
+    </ul>
+    <a href="{{ url_for('logout') }}">로그아웃</a>
+</body>
+</html>

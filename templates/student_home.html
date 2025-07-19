@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>학생 플래너</title>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.18/index.global.min.js"></script>
+  <link href="https://fonts.googleapis.com/css?family=Nunito:400,700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: #f8f9fb;
+      font-family: 'Nunito', 'Apple SD Gothic Neo', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .planner-container {
+      max-width: 430px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 22px;
+      box-shadow: 0 4px 24px rgba(60, 72, 88, 0.09);
+      padding: 32px 20px 24px 20px;
+    }
+    .planner-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+      color: #7e4fff;
+      text-align: center;
+    }
+    #calendar {
+      max-width: 370px;
+      margin: 0 auto 22px auto;
+      background: #f5f6fa;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(120, 100, 255, 0.07);
+      padding: 8px 0;
+    }
+    .fc .fc-daygrid-day.fc-day-today {
+      background: #f2eaff;
+      border-radius: 10px;
+    }
+    .fc .fc-daygrid-day.fc-day-selected {
+      background: #a259e6 !important;
+      color: #fff !important;
+      border-radius: 10px;
+    }
+    .plan-form-card {
+      background: #f5f6fa;
+      border-radius: 16px;
+      box-shadow: 0 1px 6px rgba(120, 100, 255, 0.05);
+      padding: 20px 18px;
+      margin-bottom: 10px;
+      display: none;
+    }
+    .plan-form-card.active {
+      display: block;
+      animation: fadeIn 0.3s;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(16px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+    .plan-form-card label {
+      color: #6a6a6a;
+      font-size: 0.98rem;
+      margin-top: 8px;
+      display: block;
+    }
+    .plan-form-card input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      margin: 5px 0 12px 0;
+      border: none;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(60,72,88,0.05);
+      font-size: 1rem;
+    }
+    .plan-form-card input[type="submit"] {
+      width: 100%;
+      padding: 10px 0;
+      background: linear-gradient(90deg, #a259e6 60%, #7e4fff 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s;
+    }
+    .plan-form-card input[type="submit"]:hover {
+      background: linear-gradient(90deg, #7e4fff 60%, #a259e6 100%);
+    }
+    .logout-link {
+      display: block;
+      text-align: right;
+      margin-top: 18px;
+      color: #7e4fff;
+      text-decoration: none;
+      font-size: 0.97rem;
+    }
+    .logout-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="planner-container">
+    <div class="planner-title">{{ username }}님의 플래너</div>
+    <div id="calendar"></div>
+    <div id="plan-form" class="plan-form-card">
+      <form method="post" id="planInputForm">
+        <input type="hidden" name="date" id="plan-date">
+        <label>오늘의 계획</label>
+        <input type="text" name="plan" autocomplete="off">
+        <label>오늘의 완성도</label>
+        <input type="text" name="result" autocomplete="off">
+        <label>반성할 점 또는 느낀 점</label>
+        <input type="text" name="reflection" autocomplete="off">
+        <input type="submit" value="저장">
+      </form>
+    </div>
+    <a class="logout-link" href="{{ url_for('logout') }}">로그아웃</a>
+  </div>
+  <script>
+    let selectedDateEvent = null;
+    document.addEventListener('DOMContentLoaded', function() {
+      var calendarEl = document.getElementById('calendar');
+      var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        height: 'auto',
+        dateClick: function(info) {
+          // 이전 선택 날짜 배경 제거
+          if (selectedDateEvent) {
+            calendar.getEventById('selected-date')?.remove();
+          }
+          calendar.addEvent({
+            id: 'selected-date',
+            start: info.dateStr,
+            end: info.dateStr,
+            display: 'background',
+            backgroundColor: '#a259e6'
+          });
+          selectedDateEvent = calendar.getEventById('selected-date');
+          // 날짜를 폼에 세팅
+          document.getElementById('plan-date').value = info.dateStr;
+          // AJAX로 데이터 요청
+          fetch('/get_plan', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'date=' + encodeURIComponent(info.dateStr)
+          })
+          .then(response => response.json())
+          .then(data => {
+            document.getElementsByName('plan')[0].value = data.plan;
+            document.getElementsByName('result')[0].value = data.result;
+            document.getElementsByName('reflection')[0].value = data.reflection;
+            document.getElementById('plan-form').classList.add('active');
+          });
+        }
+      });
+      calendar.render();
+    });
+  </script>
+</body>
+</html>
