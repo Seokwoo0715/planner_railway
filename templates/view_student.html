@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ student_name }} 학생 플래너</title>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.18/index.global.min.js"></script>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background: #ffffff;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+      padding: 20px;
+      padding-bottom: 40px;
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .planner-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: #f8fafc;
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+    
+    .planner-header {
+      background: #60a5fa;
+      color: white;
+      padding: 32px;
+      text-align: center;
+      position: relative;
+    }
+    
+    .planner-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 0;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .planner-content {
+      display: flex;
+      min-height: 600px;
+    }
+    
+    .calendar-section {
+      flex: 1;
+      padding: 32px;
+      background: #f8fafc;
+      border-right: 1px solid #e2e8f0;
+    }
+    
+    .form-section {
+      flex: 1;
+      padding: 32px;
+      background: white;
+    }
+    
+    #calendar {
+      background: #f9fafb;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      padding: 16px;
+    }
+    
+    .fc .fc-button-primary {
+      background: #60a5fa;
+      border-color: #60a5fa;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+    
+    .fc .fc-button-primary:hover {
+      background: #3b82f6;
+      border-color: #3b82f6;
+    }
+    
+    .fc .fc-button-primary:focus {
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+    }
+    
+    .fc .fc-daygrid-day.fc-day-today {
+      background: #dbeafe !important;
+    }
+    
+    .fc .fc-daygrid-day.fc-day-selected {
+      background: #60a5fa !important;
+      color: #fff !important;
+    }
+    
+    /* 캘린더 내부 스타일 */
+    .fc-theme-standard .fc-scrollgrid {
+      background: #f9fafb;
+    }
+    
+    .fc-theme-standard td {
+      background: #f9fafb;
+      border-color: #e5e7eb;
+    }
+    
+    .fc-theme-standard th {
+      background: #f1f5f9;
+      border-color: #e5e7eb;
+      color: #374151;
+      font-weight: 600;
+    }
+    
+    .fc .fc-daygrid-day {
+      background: #f9fafb;
+    }
+    
+    .fc .fc-daygrid-day-number {
+      color: #374151;
+      font-weight: 500;
+      font-feature-settings: 'tnum';
+    }
+    
+    .fc .fc-daygrid-day-number::after {
+      content: none;
+    }
+    
+    .plan-form-card {
+      background: #60a5fa;
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 8px 32px rgba(96, 165, 250, 0.15);
+      border: 1px solid #e5e7eb;
+      display: none;
+    }
+    
+    .plan-form-card.active {
+      display: block;
+      animation: slideIn 0.4s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from { 
+        opacity: 0; 
+        transform: translateX(30px);
+      }
+      to { 
+        opacity: 1; 
+        transform: translateX(0);
+      }
+    }
+    
+    .form-group {
+      margin-bottom: 24px;
+    }
+    
+    .form-group label {
+      color: #ffffff;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: block;
+    }
+    
+    .form-group input[type="text"], 
+    .form-group textarea {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-family: inherit;
+      transition: all 0.3s ease;
+      background: white;
+      color: #1f2937;
+      cursor: default;
+    }
+    
+    .form-group input[type="text"]:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      transform: translateY(-1px);
+    }
+    
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    
+    .checklist-container {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      border: 2px solid #e5e7eb;
+      margin-bottom: 16px;
+    }
+    
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .checklist-item:last-child {
+      border-bottom: none;
+    }
+    
+    .checklist-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #60a5fa;
+      cursor: default;
+    }
+    
+    .checklist-item .checklist-text {
+      flex: 1;
+      padding: 4px 8px;
+      font-size: 0.95rem;
+      color: #1f2937;
+      background: transparent;
+      border: none;
+    }
+    
+    .back-button {
+      background: #ffffff;
+      color: #60a5fa;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 20px;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    
+    .back-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(96, 165, 250, 0.2);
+      text-decoration: none;
+      color: #60a5fa;
+      background: #f8fafc;
+    }
+    
+    .selected-date-info {
+      background: #ffffff;
+      color: #60a5fa;
+      padding: 16px 20px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      text-align: center;
+      font-weight: 600;
+      box-shadow: 0 4px 16px rgba(255, 255, 255, 0.3);
+    }
+    
+    .no-data-message {
+      background: rgba(255, 255, 255, 0.2);
+      color: #dbeafe;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 14px;
+      margin-top: 12px;
+    }
+    
+    .student-badge {
+      position: absolute;
+      top: 32px;
+      left: 32px;
+      background: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    /* 반응형 디자인 */
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+        padding-bottom: 30px;
+      }
+      
+      .planner-content {
+        flex-direction: column;
+      }
+      
+      .calendar-section,
+      .form-section {
+        padding: 20px;
+      }
+      
+      .planner-header {
+        padding: 20px;
+      }
+      
+      .planner-title {
+        font-size: 1.5rem;
+      }
+      
+      .student-badge {
+        position: relative;
+        top: auto;
+        left: auto;
+        display: block;
+        text-align: center;
+        margin: 16px auto 0;
+        width: fit-content;
+      }
+      
+      #calendar {
+        font-size: 0.85rem;
+      }
+      
+      .fc .fc-daygrid-day {
+        min-height: 30px !important;
+        height: auto !important;
+      }
+      
+      .fc .fc-daygrid-day-number {
+        font-size: 0.8rem;
+        padding: 4px;
+      }
+      
+      .fc .fc-daygrid-body {
+        font-size: 0.8rem;
+      }
+      
+      .fc .fc-col-header-cell {
+        padding: 8px 4px;
+        font-size: 0.8rem;
+      }
+      
+      .fc .fc-button {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+      }
+      
+      .fc .fc-toolbar-title {
+        font-size: 1.2rem;
+      }
+    }
+    
+    @media (max-height: 600px) {
+      body {
+        padding-top: 10px;
+      }
+    }
+    
+    /* 터치 디바이스 최적화 */
+    @media (hover: none) and (pointer: coarse) {
+      .back-button:hover {
+        transform: none;
+        box-shadow: 0 4px 16px rgba(255, 255, 255, 0.3);
+        background: #ffffff;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="planner-container">
+    <div class="planner-header">
+      <div class="student-badge">👨‍🎓 학생 계획 조회</div>
+      <div class="planner-title">{{ student_name }}님의 플래너</div>
+    </div>
+    
+    <div class="planner-content">
+      <div class="calendar-section">
+        <div id="calendar"></div>
+      </div>
+      
+      <div class="form-section">
+        <div id="plan-form" class="plan-form-card">
+          <div id="selected-date-info" class="selected-date-info">
+            날짜를 선택해주세요
+          </div>
+          
+          <div class="form-group">
+            <label>📝 오늘의 목표</label>
+            <textarea id="plan-display" readonly placeholder="작성된 목표가 없습니다."></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label>✅ 체크리스트</label>
+            <div class="checklist-container" id="checklist-container">
+              <div class="no-data-message">작성된 체크리스트가 없습니다.</div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>📊 완성도</label>
+            <input type="text" id="result-display" readonly placeholder="작성된 완성도가 없습니다.">
+          </div>
+          
+          <div class="form-group">
+            <label>💭 오늘의 회고</label>
+            <textarea id="reflection-display" readonly placeholder="작성된 회고가 없습니다."></textarea>
+          </div>
+          
+          <a href="{{ url_for('dashboard') }}" class="back-button">
+            ← 돌아가기
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    let selectedDate = null;
+    let plansData = {};
+    
+    // 서버에서 전달받은 계획 데이터를 JavaScript 객체로 변환
+    const plans = {{ plans | safe }};
+    
+    // 계획 데이터를 날짜를 키로 하는 객체로 변환
+    plans.forEach(plan => {
+      plansData[plan.date] = plan;
+    });
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      var calendarEl = document.getElementById('calendar');
+      var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        height: 'auto',
+        aspectRatio: window.innerWidth < 768 ? 1.0 : 1.35,
+        locale: 'ko',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth'
+        },
+        buttonText: {
+          today: '오늘',
+          month: '월'
+        },
+        titleFormat: { year: 'numeric', month: 'numeric' },
+        dayHeaderFormat: { weekday: 'short' },
+        dayCellContent: function(info) {
+          return info.dayNumberText.replace('일', '');
+        },
+        dateClick: function(info) {
+          selectedDate = info.dateStr;
+          
+          // 이전 선택 날짜 배경 제거
+          calendar.removeAllEvents();
+          
+          // 새로운 선택 날짜 표시
+          calendar.addEvent({
+            id: 'selected-date',
+            start: info.dateStr,
+            end: info.dateStr,
+            display: 'background',
+            backgroundColor: '#60a5fa'
+          });
+          
+          // 계획이 있는 날짜들 표시
+          Object.keys(plansData).forEach(date => {
+            if (date !== info.dateStr) {
+              calendar.addEvent({
+                id: 'has-plan-' + date,
+                start: date,
+                end: date,
+                display: 'background',
+                backgroundColor: '#dbeafe'
+              });
+            }
+          });
+          
+          // 선택된 날짜 정보 업데이트
+          const dateObj = new Date(info.dateStr);
+          const formattedDate = dateObj.toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            weekday: 'long'
+          }).replace('일', '');
+          document.getElementById('selected-date-info').textContent = formattedDate;
+          
+          // 해당 날짜의 계획 데이터 표시
+          displayPlanData(info.dateStr);
+          
+          document.getElementById('plan-form').classList.add('active');
+        }
+      });
+      
+      calendar.render();
+      
+      // 계획이 있는 날짜들을 캘린더에 표시
+      Object.keys(plansData).forEach(date => {
+        calendar.addEvent({
+          id: 'has-plan-' + date,
+          start: date,
+          end: date,
+          display: 'background',
+          backgroundColor: '#dbeafe'
+        });
+      });
+      
+      // 화면 크기 변경 시 캘린더 비율 조정
+      window.addEventListener('resize', function() {
+        calendar.setOption('aspectRatio', window.innerWidth < 768 ? 1.0 : 1.35);
+      });
+    });
+    
+    function displayPlanData(date) {
+      const plan = plansData[date];
+      
+      if (plan) {
+        // 목표 표시
+        document.getElementById('plan-display').value = plan.plan || '';
+        
+        // 완성도 표시
+        document.getElementById('result-display').value = plan.result || '';
+        
+        // 회고 표시
+        document.getElementById('reflection-display').value = plan.reflection || '';
+        
+        // 체크리스트 표시
+        displayChecklist(plan.checklist || []);
+      } else {
+        // 데이터가 없는 경우 초기화
+        document.getElementById('plan-display').value = '';
+        document.getElementById('result-display').value = '';
+        document.getElementById('reflection-display').value = '';
+        displayChecklist([]);
+      }
+    }
+    
+    function displayChecklist(checklist) {
+      const container = document.getElementById('checklist-container');
+      
+      if (!checklist || checklist.length === 0) {
+        container.innerHTML = '<div class="no-data-message">작성된 체크리스트가 없습니다.</div>';
+        return;
+      }
+      
+      container.innerHTML = '';
+      checklist.forEach(item => {
+        const checklistItem = document.createElement('div');
+        checklistItem.className = 'checklist-item';
+        checklistItem.innerHTML = `
+          <input type="checkbox" ${item.done ? 'checked' : ''} disabled>
+          <div class="checklist-text">${item.text}</div>
+        `;
+        container.appendChild(checklistItem);
+      });
+    }
+  </script>
+</body>
+</html>
