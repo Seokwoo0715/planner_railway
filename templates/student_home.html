@@ -6,6 +6,7 @@
   <title>학생 플래너</title>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.18/index.global.min.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Nunito:400,600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css" />
   <style>
     * {
       box-sizing: border-box;
@@ -15,7 +16,7 @@
     
     body {
       background: #ffffff;
-      font-family: 'Nunito', 'Apple SD Gothic Neo', sans-serif;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
       padding: 20px;
       padding-bottom: 40px;
       min-height: 100vh;
@@ -68,7 +69,7 @@
     }
     
     #calendar {
-      background: #ffffff;
+      background: #f9fafb;
       border-radius: 16px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
       padding: 16px;
@@ -101,28 +102,37 @@
     
     /* 캘린더 내부를 더 흰색으로 */
     .fc-theme-standard .fc-scrollgrid {
-      background: #ffffff;
+      background: #f9fafb;
     }
     
     .fc-theme-standard td {
-      background: #ffffff;
+      background: #f9fafb;
       border-color: #e5e7eb;
     }
     
     .fc-theme-standard th {
-      background: #f8fafc;
+      background: #f1f5f9;
       border-color: #e5e7eb;
       color: #374151;
       font-weight: 600;
     }
     
     .fc .fc-daygrid-day {
-      background: #ffffff;
+      background: #f9fafb;
     }
     
     .fc .fc-daygrid-day-number {
       color: #374151;
       font-weight: 500;
+    }
+    
+    /* 날짜에서 "일" 제거 */
+    .fc .fc-daygrid-day-number {
+      font-feature-settings: 'tnum';
+    }
+    
+    .fc .fc-daygrid-day-number::after {
+      content: none;
     }
     
     .plan-form-card {
@@ -549,7 +559,12 @@
           today: '오늘',
           month: '월'
         },
+        titleFormat: { year: 'numeric', month: 'numeric' }, // 2025.7 형식
         dayHeaderFormat: { weekday: 'short' }, // 요일을 짧게 표시
+        dayCellContent: function(info) {
+          // 날짜 숫자만 표시 (일 제거)
+          return info.dayNumberText.replace('일', '');
+        },
         dateClick: function(info) {
           selectedDate = info.dateStr;
           
@@ -575,7 +590,7 @@
             month: 'long',
             day: 'numeric',
             weekday: 'long'
-          });
+          }).replace('일', ''); // "일" 제거
           document.getElementById('selected-date-info').textContent = formattedDate;
           
           // 날짜를 폼에 세팅
