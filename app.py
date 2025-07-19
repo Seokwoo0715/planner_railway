@@ -97,14 +97,13 @@ def dashboard():
         return redirect(url_for('login'))
     
     # 선생님 대시보드
-
     if session['role'] == 'teacher':
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("SELECT username FROM users WHERE role='student'")
-    students = c.fetchall()
-    conn.close()
-    return render_template('teacher_home.html', students=students)
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("SELECT username FROM users WHERE role='student'")
+        students = c.fetchall()
+        conn.close()
+        return render_template('teacher_home.html', students=students)
     
     # 학생 대시보드
     else:
