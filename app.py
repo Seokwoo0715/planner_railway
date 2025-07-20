@@ -8,7 +8,6 @@ import schedule
 import time
 from datetime import datetime, timedelta
 import requests
-import pytz  # 시간대 처리용
 
 if not os.path.isdir('logs'):
     os.mkdir('logs')
@@ -24,11 +23,12 @@ logging.basicConfig(
 app = Flask(__name__)
 app.secret_key = 'hongsfirstproject'
 
-# 한국 시간 가져오기 함수
+# 한국 시간 가져오기 함수 (pytz 없이)
 def get_korean_time():
-    """한국 표준시(KST) 반환"""
-    korea_tz = pytz.timezone('Asia/Seoul')
-    return datetime.now(korea_tz)
+    """한국 표준시(KST) 반환 - UTC+9"""
+    utc_now = datetime.utcnow()
+    korean_time = utc_now + timedelta(hours=9)
+    return korean_time
 
 def get_korean_time_str(format_str='%H시 %M분'):
     """한국 시간을 문자열로 반환"""
