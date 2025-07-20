@@ -8,6 +8,7 @@ import schedule
 import time
 from datetime import datetime, timedelta
 import requests
+import pytz  # 시간대 처리용
 
 if not os.path.isdir('logs'):
     os.mkdir('logs')
@@ -22,6 +23,16 @@ logging.basicConfig(
 
 app = Flask(__name__)
 app.secret_key = 'hongsfirstproject'
+
+# 한국 시간 가져오기 함수
+def get_korean_time():
+    """한국 표준시(KST) 반환"""
+    korea_tz = pytz.timezone('Asia/Seoul')
+    return datetime.now(korea_tz)
+
+def get_korean_time_str(format_str='%H시 %M분'):
+    """한국 시간을 문자열로 반환"""
+    return get_korean_time().strftime(format_str)
 
 # PostgreSQL 연결 함수
 def get_db_connection():
@@ -203,18 +214,18 @@ def view_student(student_name):
         return redirect(url_for('login'))
     
     conn = get_db_connection()
-    c = conn.cursor()
+    cursor = conn.cursor()
     
     # 학생 정보 가져오기
-    c.execute("SELECT id FROM users WHERE username=%s AND role='student'", (student_name,))
-    student = c.fetchone()
+    cursor.execute("SELECT id FROM users WHERE username=%s AND role='student'", (student_name,))
+    student = cursor.fetchone()
     
     if not student:
         conn.close()
         return "학생을 찾을 수 없습니다.", 404
     
     # 학생의 모든 계획 가져오기 (최근순)
-    c.execute("""
+    cursor.execute("""
         SELECT plan_date, plan, result, reflection, checklist 
         FROM plans 
         WHERE user_id=%s 
@@ -222,7 +233,7 @@ def view_student(student_name):
         LIMIT 30
     """, (student[0],))
     
-    plans = c.fetchall()
+    plans = cursor.fetchall()
     conn.close()
     
     # 체크리스트 데이터 파싱
@@ -239,6 +250,16 @@ def view_student(student_name):
             'date': plan[0],
             'plan': plan[1] or '',
             'result': plan[2] or '',
+            'reflection': plan[3] or '',
+            'checklist': checklist
+        })
+    
+    # JSON으로 직렬화해서 템플릿에 전달
+    plans_json = json.dumps(formatted_plans)
+    
+    return render_template('view_student.html', 
+                         student_name=student_name, 
+                         plans=plans_json) or '',
             'reflection': plan[3] or '',
             'checklist': checklist
         })
@@ -293,19 +314,30 @@ def internal_error(error):
     app.logger.error(f"Internal server error: {error}")
     return render_template('500.html'), 500
 
+# favicon.ico 요청 처리 (오류 방지)
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204  # No Content
+
 # 선생님 카카오톡 알림 함수
 def send_teacher_kakao_notification(message):
     """선생님에게 카카오톡 메시지 전송"""
+    
+    # 토큰 확인
+    token = os.environ.get('TEACHER_KAKAO_TOKEN')
+    if not token:
+        app.logger.error("❌ TEACHER_KAKAO_TOKEN이 설정되지 않았습니다")
+        return False
+    
     url = "https://kapi.kakao.com/v2/api/talk/memo/default/send"
     
-    # 발급받은 Access Token 사용
     headers = {
-        "Authorization": f"Bearer {os.environ.get('TEACHER_KAKAO_TOKEN')}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/x-www-form-urlencoded"
     }
     
     # 플래너 링크 포함
-    base_url = os.environ.get('RAILWAY_STATIC_URL', 'https://your-app.railway.app')
+    base_url = os.environ.get('RAILWAY_STATIC_URL', 'https://plannerrailway-production.up.railway.app')
     
     template_object = {
         "object_type": "text",
@@ -321,22 +353,35 @@ def send_teacher_kakao_notification(message):
     }
     
     try:
+        app.logger.info(f"📱 카카오톡 메시지 전송 시도...")
         response = requests.post(url, headers=headers, data=data)
+        
+        app.logger.info(f"📱 응답 상태코드: {response.status_code}")
+        app.logger.info(f"📱 응답 내용: {response.text}")
+        
         if response.status_code == 200:
             app.logger.info("✅ 선생님 카카오톡 알림 전송 성공")
             return True
         else:
             app.logger.error(f"❌ 카카오톡 전송 실패: {response.status_code} - {response.text}")
+            
+            # 토큰 만료 확인
+            if response.status_code == 401:
+                app.logger.error("🔑 토큰이 만료되었거나 유효하지 않습니다. 새로운 토큰을 발급받아 주세요.")
+            
             return False
+            
+    except requests.exceptions.RequestException as e:
+        app.logger.error(f"❌ 네트워크 오류: {e}")
+        return False
     except Exception as e:
-        app.logger.error(f"❌ 카카오톡 전송 오류: {e}")
+        app.logger.error(f"❌ 예상치 못한 오류: {e}")
         return False
 
-# 오전 11시 체크
 def check_morning_goals():
     """오전 11시 - 목표 미작성 학생들 체크"""
-    today = datetime.now().strftime('%Y-%m-%d')
-    current_time = datetime.now().strftime('%H시 %M분')
+    today = get_korean_time().strftime('%Y-%m-%d')
+    current_time = get_korean_time_str()
     
     try:
         conn = get_db_connection()
@@ -368,7 +413,7 @@ def check_morning_goals():
             message = f"""📋 오전 11시 목표 미작성 알림
 
 ⏰ 시간: {current_time}
-📅 날짜: {datetime.now().strftime('%m월 %d일')}
+📅 날짜: {get_korean_time_str('%m월 %d일')}
 
 ❌ 목표 미작성 학생들:
 {chr(10).join([f"• {name} 학생" for name in student_names])}
@@ -384,7 +429,7 @@ def check_morning_goals():
             message = f"""✅ 오전 11시 목표 작성 현황
 
 ⏰ 시간: {current_time}
-📅 날짜: {datetime.now().strftime('%m월 %d일')}
+📅 날짜: {get_korean_time_str('%m월 %d일')}
 
 🎉 모든 학생이 목표를 작성했습니다!
 훌륭해요! 👏"""
@@ -552,11 +597,42 @@ def test_kakao():
 
 ✅ 카카오톡 알림이 정상적으로 작동하고 있습니다!
 
-시간: {datetime.now().strftime('%H시 %M분')}
-날짜: {datetime.now().strftime('%Y년 %m월 %d일')}"""
+시간: {get_korean_time_str()}
+날짜: {get_korean_time_str('%Y년 %m월 %d일')}"""
     
     result = send_teacher_kakao_notification(test_message)
     return f"테스트 메시지 {'✅ 성공' if result else '❌ 실패'}"
+
+@app.route('/check_kakao_token')
+def check_kakao_token():
+    """카카오톡 토큰 상태 확인"""
+    if 'user_id' not in session or session['role'] != 'teacher':
+        return "권한이 없습니다", 403
+    
+    token = os.environ.get('TEACHER_KAKAO_TOKEN')
+    
+    if not token:
+        return "❌ TEACHER_KAKAO_TOKEN이 설정되지 않았습니다"
+    
+    # 토큰 유효성 검사
+    try:
+        import requests
+        response = requests.get(
+            "https://kapi.kakao.com/v1/user/access_token_info",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            return f"""✅ 토큰 상태: 유효<br>
+📱 앱 ID: {data.get('app_id')}<br>
+⏰ 만료까지: {data.get('expires_in')}초<br>
+🔑 토큰 앞 10자리: {token[:10]}..."""
+        else:
+            return f"❌ 토큰 상태: 무효 ({response.status_code})<br>응답: {response.text}"
+            
+    except Exception as e:
+        return f"❌ 토큰 확인 오류: {str(e)}"
 
 @app.route('/test_morning')
 def test_morning():
