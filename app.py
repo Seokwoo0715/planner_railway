@@ -259,10 +259,7 @@ def view_student(student_name):
     
     return render_template('view_student.html', 
                          student_name=student_name, 
-                         plans=plans_json) or '',
-            'reflection': plan[3] or '',
-            'checklist': checklist
-        })
+                         plans=plans_json)
     
     # JSON으로 직렬화해서 템플릿에 전달
     plans_json = json.dumps(formatted_plans)
